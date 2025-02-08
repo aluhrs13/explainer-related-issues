@@ -4,6 +4,48 @@ let allIssueComments = [];
 let activeFilter = null;
 let trackedIssues = new Set();
 
+// Storage helpers
+function isStorageAvailable() {
+  try {
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Load saved state
+async function loadSavedState() {
+  if (!isStorageAvailable()) return;
+
+  try {
+    const savedIssues = localStorage.getItem('trackedIssues');
+
+    if (savedIssues) {
+      trackedIssues = new Set(JSON.parse(savedIssues));
+      if (trackedIssues.size > 0) {
+        updateIssueTable();
+        await refreshAllComments();
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load saved state:', error);
+  }
+}
+
+// Save state
+function saveState() {
+  if (!isStorageAvailable()) return;
+
+  try {
+    localStorage.setItem('trackedIssues', JSON.stringify([...trackedIssues]));
+  } catch (error) {
+    console.error('Failed to save state:', error);
+  }
+}
+
 // API functions
 async function getUserCompany(username) {
   if (userCompanyMap.has(username)) return userCompanyMap.get(username);
@@ -53,6 +95,68 @@ function getNextPageUrl(linkHeader) {
     }
   }
   return null;
+}
+
+async function refreshAllComments() {
+  const issueContainers = document.getElementById('issueContainers');
+  const loadingIndicator = createLoadingIndicator('Refreshing comments...');
+  issueContainers.appendChild(loadingIndicator);
+  allIssueComments = []; // Clear existing comments
+
+  try {
+    for (const issueRef of trackedIssues) {
+      const [repo, issueNumber] = issueRef.split('#');
+      const updateProgress = (message) => {
+        const progressElement = loadingIndicator.querySelector('span');
+        if (progressElement)
+          progressElement.textContent = `${issueRef}: ${message}`;
+      };
+
+      const [issue, comments] = await Promise.all([
+        fetch(
+          `https://api.github.com/repos/${repo}/issues/${issueNumber}`
+        ).then((response) => {
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+          return response.json();
+        }),
+        getAllComments(repo, issueNumber, updateProgress),
+      ]);
+
+      const commentsWithMeta = [
+        {
+          user: issue.user,
+          created_at: issue.created_at,
+          body: issue.body,
+          isOriginalPost: true,
+          issueNumber,
+          issueTitle: issue.title,
+          repo,
+        },
+        ...comments.map((comment) => ({
+          ...comment,
+          issueNumber,
+          issueTitle: issue.title,
+          repo,
+        })),
+      ];
+
+      allIssueComments = [...allIssueComments, ...commentsWithMeta];
+    }
+
+    allIssueComments.sort(
+      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
+    const uniqueUsers = new Set(
+      allIssueComments.map((comment) => comment.user.login)
+    );
+    await Promise.all([...uniqueUsers].map(getUserCompany));
+
+    loadingIndicator.remove();
+    updateCommentsContent();
+  } catch (error) {
+    loadingIndicator.innerHTML = `<p>Error: ${error.message}</p>`;
+  }
 }
 
 // UI Functions
@@ -130,32 +234,50 @@ function updateIssueTable() {
     .map((issue) => {
       const [repo, number] = issue.split('#');
       return `
-          <tr>
-              <td>${repo}</td>
-              <td>${number}</td>
-              <td>
-                  <button class="remove-issue" data-issue="${issue}">Remove</button>
-              </td>
-          </tr>
-      `;
+                <tr>
+                    <td>${repo}</td>
+                    <td>${number}</td>
+                    <td>
+                        <button class="remove-issue" data-issue="${issue}">Remove</button>
+                    </td>
+                </tr>
+            `;
     })
     .join('');
 
   // Add event listeners for remove buttons
   tableBody.querySelectorAll('.remove-issue').forEach((button) => {
-    button.addEventListener('click', (e) => {
+    button.addEventListener('click', async (e) => {
       const issueRef = e.target.dataset.issue;
       trackedIssues.delete(issueRef);
-      allIssueComments = allIssueComments.filter(
-        (comment) => `${comment.repo}#${comment.issueNumber}` !== issueRef
-      );
+      saveState();
       if (activeFilter === issueRef) {
         activeFilter = null;
       }
       updateIssueTable();
-      updateCommentsContent();
+      await refreshAllComments();
     });
   });
+}
+
+async function handleAddIssue(repo, issueNumber) {
+  const issueRef = `${repo}#${issueNumber}`;
+
+  if (!repo || !issueNumber) {
+    alert('Please fill in both repository and issue number');
+    return false;
+  }
+
+  if (trackedIssues.has(issueRef)) {
+    alert('This issue is already being tracked');
+    return false;
+  }
+
+  trackedIssues.add(issueRef);
+  updateIssueTable();
+  saveState();
+  await refreshAllComments();
+  return true;
 }
 
 // Event Handlers
@@ -164,75 +286,22 @@ document
   .addEventListener('click', async () => {
     const repo = document.getElementById('repo').value;
     const issueNumber = document.getElementById('issueNumber').value;
-    const issueRef = `${repo}#${issueNumber}`;
 
-    if (!repo || !issueNumber) {
-      alert('Please fill in both repository and issue number');
-      return;
-    }
-
-    if (trackedIssues.has(issueRef)) {
-      alert('This issue is already being tracked');
-      return;
-    }
-
-    const issueContainers = document.getElementById('issueContainers');
-    const loadingIndicator = createLoadingIndicator('Loading comments...');
-    issueContainers.appendChild(loadingIndicator);
-
-    const updateProgress = (message) => {
-      const progressElement = loadingIndicator.querySelector('span');
-      if (progressElement) progressElement.textContent = message;
-    };
-
-    try {
-      const [issue, comments] = await Promise.all([
-        fetch(
-          `https://api.github.com/repos/${repo}/issues/${issueNumber}`
-        ).then((response) => {
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-          return response.json();
-        }),
-        getAllComments(repo, issueNumber, updateProgress),
-      ]);
-
-      const commentsWithMeta = [
-        {
-          user: issue.user,
-          created_at: issue.created_at,
-          body: issue.body,
-          isOriginalPost: true,
-          issueNumber,
-          issueTitle: issue.title,
-          repo,
-        },
-        ...comments.map((comment) => ({
-          ...comment,
-          issueNumber,
-          issueTitle: issue.title,
-          repo,
-        })),
-      ];
-
-      allIssueComments = [...allIssueComments, ...commentsWithMeta];
-      allIssueComments.sort(
-        (a, b) => new Date(a.created_at) - new Date(b.created_at)
-      );
-
-      const uniqueUsers = new Set(
-        allIssueComments.map((comment) => comment.user.login)
-      );
-      await Promise.all([...uniqueUsers].map(getUserCompany));
-
-      trackedIssues.add(issueRef);
-      updateIssueTable();
-      loadingIndicator.remove();
-      updateCommentsContent();
-
-      // Clear form inputs
+    if (await handleAddIssue(repo, issueNumber)) {
+      // Clear form inputs on success
       document.getElementById('repo').value = '';
-    } catch (error) {
-      loadingIndicator.innerHTML = `<p>Error: ${error.message}</p>`;
+      document.getElementById('issueNumber').value = '';
     }
   });
+
+// Add refresh button to reload comments
+document.addEventListener('DOMContentLoaded', () => {
+  const table = document.querySelector('.issue-table table');
+  const refreshButton = document.createElement('button');
+  refreshButton.textContent = 'Refresh All Comments';
+  refreshButton.className = 'refresh-comments';
+  refreshButton.addEventListener('click', refreshAllComments);
+  table.parentElement.insertBefore(refreshButton, table);
+
+  loadSavedState();
+});

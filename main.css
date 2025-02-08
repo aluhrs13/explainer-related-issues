@@ -239,3 +239,80 @@ button:hover {
     transform: rotate(360deg);
   }
 }
+
+.form-inline .form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.form-inline .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-inline button {
+  margin-bottom: 1rem;
+}
+
+.issue-table {
+  margin: 2rem 0;
+}
+
+.issue-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.issue-table th,
+.issue-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.issue-table th {
+  background-color: #f6f8fa;
+  border-top: 1px solid #e1e4e8;
+}
+
+.issue-table button.remove-issue {
+  background-color: #cb2431;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.issue-table button.remove-issue:hover {
+  background-color: #a41e2b;
+}
+
+.issue-table input {
+  width: 95%;
+  margin: 0;
+  padding: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.issue-table tfoot td {
+  padding: 0.5rem 0.75rem;
+  background-color: #f6f8fa;
+}
+
+.issue-table tfoot button {
+  width: 100%;
+  margin: 0;
+  padding: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.refresh-comments {
+  margin-bottom: 1rem;
+  width: auto;
+  display: block;
+  background-color: #28a745;
+}
+
+.refresh-comments:hover {
+  background-color: #218838;
+}

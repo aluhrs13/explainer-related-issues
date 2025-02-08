@@ -25,17 +25,45 @@
   <body>
     <div class="container">
       <h1>GitHub Issue Comments Viewer</h1>
-      <form id="issueForm">
-        <div class="form-group">
-          <label for="repo">Repository (format: owner/repo):</label>
-          <input type="text" id="repo" required value="w3c/csswg-drafts" />
-        </div>
-        <div class="form-group">
-          <label for="issueNumber">Issue Number:</label>
-          <input type="number" id="issueNumber" required value="11509" />
-        </div>
-        <button type="submit">Add Issue</button>
-      </form>
+
+      <div id="issueTable" class="issue-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>Issue #</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="issueTableBody"></tbody>
+          <tfoot>
+            <tr id="addIssueForm">
+              <td>
+                <input
+                  type="text"
+                  id="repo"
+                  required
+                  value="w3c/csswg-drafts"
+                  placeholder="owner/repo"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  id="issueNumber"
+                  required
+                  value="11509"
+                  placeholder="Issue number"
+                />
+              </td>
+              <td>
+                <button type="button" id="addIssueButton">Add Issue</button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
       <div id="issueContainers" class="issue-containers"></div>
     </div>
     <script src="main.js"></script>
