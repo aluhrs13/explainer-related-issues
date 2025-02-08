@@ -2,6 +2,7 @@
 const userCompanyMap = new Map();
 let allIssueComments = [];
 let activeFilter = null;
+let trackedIssues = new Set();
 
 // API functions
 async function getUserCompany(username) {
@@ -123,64 +124,115 @@ function addCommentEventListeners() {
   });
 }
 
+function updateIssueTable() {
+  const tableBody = document.getElementById('issueTableBody');
+  tableBody.innerHTML = Array.from(trackedIssues)
+    .map((issue) => {
+      const [repo, number] = issue.split('#');
+      return `
+          <tr>
+              <td>${repo}</td>
+              <td>${number}</td>
+              <td>
+                  <button class="remove-issue" data-issue="${issue}">Remove</button>
+              </td>
+          </tr>
+      `;
+    })
+    .join('');
+
+  // Add event listeners for remove buttons
+  tableBody.querySelectorAll('.remove-issue').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      const issueRef = e.target.dataset.issue;
+      trackedIssues.delete(issueRef);
+      allIssueComments = allIssueComments.filter(
+        (comment) => `${comment.repo}#${comment.issueNumber}` !== issueRef
+      );
+      if (activeFilter === issueRef) {
+        activeFilter = null;
+      }
+      updateIssueTable();
+      updateCommentsContent();
+    });
+  });
+}
+
 // Event Handlers
-document.getElementById('issueForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
+document
+  .getElementById('addIssueButton')
+  .addEventListener('click', async () => {
+    const repo = document.getElementById('repo').value;
+    const issueNumber = document.getElementById('issueNumber').value;
+    const issueRef = `${repo}#${issueNumber}`;
 
-  const repo = document.getElementById('repo').value;
-  const issueNumber = document.getElementById('issueNumber').value;
-  const issueContainers = document.getElementById('issueContainers');
-  const loadingIndicator = createLoadingIndicator('Loading comments...');
-  issueContainers.appendChild(loadingIndicator);
+    if (!repo || !issueNumber) {
+      alert('Please fill in both repository and issue number');
+      return;
+    }
 
-  const updateProgress = (message) => {
-    const progressElement = loadingIndicator.querySelector('span');
-    if (progressElement) progressElement.textContent = message;
-  };
+    if (trackedIssues.has(issueRef)) {
+      alert('This issue is already being tracked');
+      return;
+    }
 
-  try {
-    const [issue, comments] = await Promise.all([
-      fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`).then(
-        (response) => {
+    const issueContainers = document.getElementById('issueContainers');
+    const loadingIndicator = createLoadingIndicator('Loading comments...');
+    issueContainers.appendChild(loadingIndicator);
+
+    const updateProgress = (message) => {
+      const progressElement = loadingIndicator.querySelector('span');
+      if (progressElement) progressElement.textContent = message;
+    };
+
+    try {
+      const [issue, comments] = await Promise.all([
+        fetch(
+          `https://api.github.com/repos/${repo}/issues/${issueNumber}`
+        ).then((response) => {
           if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
           return response.json();
-        }
-      ),
-      getAllComments(repo, issueNumber, updateProgress),
-    ]);
+        }),
+        getAllComments(repo, issueNumber, updateProgress),
+      ]);
 
-    const commentsWithMeta = [
-      {
-        user: issue.user,
-        created_at: issue.created_at,
-        body: issue.body,
-        isOriginalPost: true,
-        issueNumber,
-        issueTitle: issue.title,
-        repo,
-      },
-      ...comments.map((comment) => ({
-        ...comment,
-        issueNumber,
-        issueTitle: issue.title,
-        repo,
-      })),
-    ];
+      const commentsWithMeta = [
+        {
+          user: issue.user,
+          created_at: issue.created_at,
+          body: issue.body,
+          isOriginalPost: true,
+          issueNumber,
+          issueTitle: issue.title,
+          repo,
+        },
+        ...comments.map((comment) => ({
+          ...comment,
+          issueNumber,
+          issueTitle: issue.title,
+          repo,
+        })),
+      ];
 
-    allIssueComments = [...allIssueComments, ...commentsWithMeta];
-    allIssueComments.sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
+      allIssueComments = [...allIssueComments, ...commentsWithMeta];
+      allIssueComments.sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
 
-    const uniqueUsers = new Set(
-      allIssueComments.map((comment) => comment.user.login)
-    );
-    await Promise.all([...uniqueUsers].map(getUserCompany));
+      const uniqueUsers = new Set(
+        allIssueComments.map((comment) => comment.user.login)
+      );
+      await Promise.all([...uniqueUsers].map(getUserCompany));
 
-    loadingIndicator.remove();
-    updateCommentsContent();
-  } catch (error) {
-    loadingIndicator.innerHTML = `<p>Error: ${error.message}</p>`;
-  }
-});
+      trackedIssues.add(issueRef);
+      updateIssueTable();
+      loadingIndicator.remove();
+      updateCommentsContent();
+
+      // Clear form inputs
+      document.getElementById('repo').value = '';
+    } catch (error) {
+      loadingIndicator.innerHTML = `<p>Error: ${error.message}</p>`;
+    }
+  });
