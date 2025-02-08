@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Issue Comments</title>
+    <link rel="stylesheet" href="main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((registration) => {
+              console.log('ServiceWorker registration successful');
+            })
+            .catch((err) => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>GitHub Issue Comments Viewer</h1>
+      <form id="issueForm">
+        <div class="form-group">
+          <label for="repo">Repository (format: owner/repo):</label>
+          <input type="text" id="repo" required value="w3c/csswg-drafts" />
+        </div>
+        <div class="form-group">
+          <label for="issueNumber">Issue Number:</label>
+          <input type="number" id="issueNumber" required value="11509" />
+        </div>
+        <button type="submit">Add Issue</button>
+      </form>
+      <div id="issueContainers" class="issue-containers"></div>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>

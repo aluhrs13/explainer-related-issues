@@ -1,0 +1,241 @@
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #0366d6;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+button:hover {
+  background-color: #0255b3;
+}
+
+.comments-container {
+  margin-top: 2rem;
+}
+
+.comment {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-author {
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.comment-date {
+  color: #586069;
+}
+
+.comment-body {
+  line-height: 1.5;
+}
+
+/* Markdown content styling */
+.comment-body pre {
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.comment-body code {
+  background-color: #f6f8fa;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.comment-body blockquote {
+  border-left: 4px solid #dfe2e5;
+  color: #6a737d;
+  margin: 0;
+  padding-left: 1em;
+}
+
+.comment-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.comment-body table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.comment-body table th,
+.comment-body table td {
+  border: 1px solid #dfe2e5;
+  padding: 6px 13px;
+}
+
+.comment-body table tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+
+.issue-reference {
+  background-color: #f6f8fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  color: #586069;
+  margin-left: 0.5rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.issue-reference:hover {
+  border-color: #0366d6;
+  color: #0366d6;
+  background-color: #f1f8ff;
+}
+
+.issue-reference.active {
+  background-color: #0366d6;
+  color: white;
+  border-color: #0366d6;
+}
+
+.issue-reference[data-issue].active,
+.issue-reference[data-issue='${activeFilter}'] {
+  background-color: #0366d6;
+  color: white;
+  border-color: #0366d6;
+}
+
+.issue-containers {
+  margin-top: 1rem;
+}
+
+.issue-container {
+  display: none;
+}
+
+.issue-container.active {
+  display: block;
+}
+
+.close-all-button {
+  margin-left: auto;
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  color: #24292e;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.issue-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.issue-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #24292e;
+}
+
+.issue-meta {
+  color: #586069;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.issue-state {
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.issue-state.open {
+  background-color: #28a745;
+  color: white;
+}
+
+.issue-state.closed {
+  background-color: #cb2431;
+  color: white;
+}
+
+.original-post {
+  background-color: #f1f8ff;
+  border-left: 4px solid #0366d6;
+}
+
+.original-post-badge {
+  background-color: #0366d6;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #586069;
+  padding: 2rem;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e1e4e8;
+  border-top-color: #0366d6;
+  border-radius: 50%;
+  animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
