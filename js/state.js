@@ -55,12 +55,19 @@ export class StateManager {
   }
 
   setComments(comments) {
-    this.allIssueComments = comments;
+    this.allIssueComments = comments.map((comment) => ({
+      ...comment,
+      body: comment.body || '', // Ensure body is always a string
+    }));
     this.notifySubscribers();
   }
 
   addComments(comments) {
-    this.allIssueComments = [...this.allIssueComments, ...comments];
+    const processedComments = comments.map((comment) => ({
+      ...comment,
+      body: comment.body || '', // Ensure body is always a string
+    }));
+    this.allIssueComments = [...this.allIssueComments, ...processedComments];
     this.allIssueComments.sort(
       (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );

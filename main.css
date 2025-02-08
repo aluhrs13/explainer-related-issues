@@ -131,69 +131,8 @@ button:hover {
   border-color: #0366d6;
 }
 
-.issue-reference[data-issue].active,
-.issue-reference[data-issue='${activeFilter}'] {
-  background-color: #0366d6;
-  color: white;
-  border-color: #0366d6;
-}
-
 .issue-containers {
   margin-top: 1rem;
-}
-
-.issue-container {
-  display: none;
-}
-
-.issue-container.active {
-  display: block;
-}
-
-.close-all-button {
-  margin-left: auto;
-  background-color: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  color: #24292e;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.issue-header {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e1e4e8;
-}
-
-.issue-header h2 {
-  margin: 0 0 0.5rem 0;
-  color: #24292e;
-}
-
-.issue-meta {
-  color: #586069;
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.issue-state {
-  padding: 0.25rem 0.75rem;
-  border-radius: 2rem;
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-.issue-state.open {
-  background-color: #28a745;
-  color: white;
-}
-
-.issue-state.closed {
-  background-color: #cb2431;
-  color: white;
 }
 
 .original-post {
