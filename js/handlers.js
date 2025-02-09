@@ -6,76 +6,164 @@ import {
   updateCommentsContent,
 } from './ui.js';
 
-async function refreshAllComments() {
-  const issueContainers = document.getElementById('issueContainers');
-  const loadingIndicator = createLoadingIndicator('Refreshing comments...');
-  issueContainers.appendChild(loadingIndicator);
-  state.setComments([]);
+class ProgressHandler {
+  constructor(loadingIndicator) {
+    this.loadingIndicator = loadingIndicator;
+  }
+
+  update(issueRef, message) {
+    const progressElement = this.loadingIndicator.querySelector('span');
+    if (progressElement) {
+      progressElement.textContent = `${issueRef}: ${message}`;
+    }
+  }
+
+  setError(message) {
+    this.loadingIndicator.innerHTML = `<p>Error: ${message}</p>`;
+  }
+
+  setEmpty() {
+    this.loadingIndicator.innerHTML =
+      '<p>No issues being tracked. Add an issue to see comments.</p>';
+  }
+
+  remove() {
+    this.loadingIndicator.remove();
+  }
+}
+
+async function fetchIssueData(repo, issueNumber, progressHandler) {
+  const issueRef = `${repo}#${issueNumber}`;
 
   try {
-    for (const issueRef of state.trackedIssues) {
-      const [repo, issueNumber] = issueRef.split('#');
-      const updateProgress = (message) => {
-        const progressElement = loadingIndicator.querySelector('span');
-        if (progressElement)
-          progressElement.textContent = `${issueRef}: ${message}`;
-      };
+    console.log(`Fetching data for ${issueRef}`);
+    const [issue, comments] = await Promise.all([
+      getIssue(repo, issueNumber),
+      getAllComments(repo, issueNumber, (msg) =>
+        progressHandler.update(issueRef, msg)
+      ),
+    ]);
 
-      const [issue, comments] = await Promise.all([
-        getIssue(repo, issueNumber),
-        getAllComments(repo, issueNumber, updateProgress),
-      ]);
-
-      const commentsWithMeta = [
-        {
-          user: issue.user,
-          created_at: issue.created_at,
-          body: issue.body,
-          isOriginalPost: true,
-          issueNumber,
-          issueTitle: issue.title,
-          repo,
-        },
-        ...comments.map((comment) => ({
-          ...comment,
-          issueNumber,
-          issueTitle: issue.title,
-          repo,
-        })),
-      ];
-
-      state.addComments(commentsWithMeta);
+    if (!issue) {
+      throw new Error('No issue data received');
     }
 
-    const uniqueUsers = new Set(
-      state.allIssueComments.map((comment) => comment.user.login)
-    );
-    const companies = await Promise.all(
-      [...uniqueUsers].map(async (username) => {
-        const company = await getUserCompany(username);
-        return [username, company];
-      })
+    console.log(`Received issue data for ${issueRef}:`, {
+      issue,
+      commentsCount: comments.length,
+    });
+
+    return {
+      issue,
+      comments,
+      issueRef,
+    };
+  } catch (error) {
+    console.error(`Error fetching data for ${issueRef}:`, error);
+    progressHandler.update(issueRef, `Error: ${error.message}`);
+    return null;
+  }
+}
+
+async function fetchUserCompanies(comments) {
+  const uniqueUsers = new Set(comments.map((comment) => comment.user.login));
+  console.log('Fetching company info for users:', Array.from(uniqueUsers));
+
+  const companies = await Promise.all(
+    [...uniqueUsers].map(async (username) => {
+      const company = await getUserCompany(username);
+      return [username, company];
+    })
+  );
+
+  return companies;
+}
+
+function processIssueComments(issue, comments, repo, issueNumber) {
+  return [
+    {
+      user: issue.user,
+      created_at: issue.created_at,
+      body: issue.body,
+      isOriginalPost: true,
+      issueNumber,
+      issueTitle: issue.title,
+      repo,
+    },
+    ...comments.map((comment) => ({
+      ...comment,
+      issueNumber,
+      issueTitle: issue.title,
+      repo,
+    })),
+  ];
+}
+
+async function processTrackedIssue(issueRef, progressHandler) {
+  const [repo, issueNumber] = issueRef.split('#');
+
+  if (!repo || !issueNumber) {
+    console.error('Invalid issue reference:', issueRef);
+    return;
+  }
+
+  const result = await fetchIssueData(repo, issueNumber, progressHandler);
+  if (!result) return;
+
+  const { issue, comments } = result;
+  const commentsWithMeta = processIssueComments(
+    issue,
+    comments,
+    repo,
+    issueNumber
+  );
+  state.addComments(commentsWithMeta);
+}
+
+async function refreshAllComments() {
+  const progressHandler = new ProgressHandler(
+    createLoadingIndicator('Refreshing comments...')
+  );
+
+  try {
+    if (!state.trackedIssues?.size) {
+      progressHandler.setEmpty();
+      return;
+    }
+
+    state.setComments([]);
+    console.log(
+      'Starting to fetch comments for issues:',
+      Array.from(state.trackedIssues)
     );
 
+    await Promise.all(
+      Array.from(state.trackedIssues).map((issueRef) =>
+        processTrackedIssue(issueRef, progressHandler)
+      )
+    );
+
+    const companies = await fetchUserCompanies(state.allIssueComments);
     companies.forEach(([username, company]) =>
       state.setUserCompany(username, company)
     );
 
-    loadingIndicator.remove();
+    progressHandler.remove();
+    console.log('Updating comments display...');
     updateCommentsContent();
   } catch (error) {
-    loadingIndicator.innerHTML = `<p>Error: ${error.message}</p>`;
+    console.error('Error in refreshAllComments:', error);
+    progressHandler.setError(error.message);
   }
 }
 
 async function handleAddIssue(repo, issueNumber) {
-  const issueRef = `${repo}#${issueNumber}`;
-
   if (!repo || !issueNumber) {
     alert('Please fill in both repository and issue number');
     return false;
   }
 
+  const issueRef = `${repo}#${issueNumber}`;
   if (!state.addTrackedIssue(issueRef)) {
     alert('This issue is already being tracked');
     return false;
@@ -86,35 +174,41 @@ async function handleAddIssue(repo, issueNumber) {
   return true;
 }
 
+function handleIssueRemoval(issueRef) {
+  state.removeTrackedIssue(issueRef);
+  renderIssueTable();
+  return refreshAllComments();
+}
+
+function handleIssueFilter(issueRef) {
+  state.setActiveFilter(state.activeFilter === issueRef ? null : issueRef);
+  updateCommentsContent();
+}
+
 function setupEventListeners() {
-  document
-    .getElementById('addIssueButton')
-    .addEventListener('click', async () => {
-      const repo = document.getElementById('repo').value;
-      const issueNumber = document.getElementById('issueNumber').value;
+  const addIssueButton = document.getElementById('addIssueButton');
+  const issueTableBody = document.getElementById('issueTableBody');
+  const issueContainers = document.getElementById('issueContainers');
 
-      if (await handleAddIssue(repo, issueNumber)) {
-        document.getElementById('repo').value = '';
-        document.getElementById('issueNumber').value = '';
-      }
-    });
+  addIssueButton?.addEventListener('click', async () => {
+    const repo = document.getElementById('repo').value;
+    const issueNumber = document.getElementById('issueNumber').value;
 
-  document
-    .getElementById('issueTableBody')
-    .addEventListener('click', async (e) => {
-      if (e.target.classList.contains('remove-issue')) {
-        const issueRef = e.target.dataset.issue;
-        state.removeTrackedIssue(issueRef);
-        renderIssueTable();
-        await refreshAllComments();
-      }
-    });
+    if (await handleAddIssue(repo, issueNumber)) {
+      document.getElementById('repo').value = '';
+      document.getElementById('issueNumber').value = '';
+    }
+  });
 
-  document.getElementById('issueContainers').addEventListener('click', (e) => {
+  issueTableBody?.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('remove-issue')) {
+      await handleIssueRemoval(e.target.dataset.issue);
+    }
+  });
+
+  issueContainers?.addEventListener('click', (e) => {
     if (e.target.classList.contains('issue-reference')) {
-      const issueRef = e.target.dataset.issue;
-      state.setActiveFilter(state.activeFilter === issueRef ? null : issueRef);
-      updateCommentsContent();
+      handleIssueFilter(e.target.dataset.issue);
     }
   });
 }
