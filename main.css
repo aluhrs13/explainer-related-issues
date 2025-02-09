@@ -44,6 +44,12 @@ button:hover {
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.comment.comment-selected {
+  border-color: #0366d6;
+  background-color: #f8fafd;
 }
 
 .comment-header {
@@ -85,6 +91,23 @@ button:hover {
   color: #6a737d;
   margin: 0;
   padding-left: 1em;
+  transition: all 0.2s ease;
+}
+
+.comment-body blockquote:hover {
+  border-left-color: #0366d6;
+  background-color: #f1f8ff;
+}
+
+.comment.comment-selected blockquote {
+  border-left-color: #0366d6;
+  background-color: #f1f8ff;
+}
+
+.comment-body blockquote.blockquote-selected {
+  border-left-color: #0366d6;
+  background-color: #f1f8ff;
+  border-right: 2px solid #0366d6;
 }
 
 .comment-body img {
