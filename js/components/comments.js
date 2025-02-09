@@ -1,33 +1,41 @@
 import { state } from '../state.js';
 
-// Ensure marked is available from window global
 const parseMarkdown = (text) =>
   window.marked ? window.marked.parse(text) : text;
 
-// Add function to modify filtered comments
-function modifyFilteredComments(comments) {
-  // Find any selected quote
+function updateCommentVisibility() {
+  const container = document.getElementById('issueContainers');
   const selectedQuote = document.querySelector('.quote-selected');
-  if (!selectedQuote) {
-    return comments; // Return all comments when no quote is selected
+
+  // Reset all comments first
+  container.classList.remove('quote-filtering');
+  container.querySelectorAll('.comment').forEach((comment) => {
+    comment.classList.remove('filtered', 'quote-related');
+  });
+
+  // Apply issue filter
+  if (state.activeFilter) {
+    container.querySelectorAll('.comment').forEach((comment) => {
+      const issueRef = comment.querySelector('.issue-reference').dataset.issue;
+      if (issueRef !== state.activeFilter) {
+        comment.classList.add('filtered');
+      }
+    });
   }
 
-  // Get the selected comment
-  const selectedComment = selectedQuote.closest('.comment');
-  if (!selectedComment) {
-    return comments;
+  // Apply quote filter if a quote is selected
+  if (selectedQuote) {
+    container.classList.add('quote-filtering');
+    const quoteText = selectedQuote.textContent.trim();
+
+    // Mark comments containing the quote as related
+    container.querySelectorAll('.comment:not(.filtered)').forEach((comment) => {
+      const body = comment.querySelector('.comment-body').textContent;
+      if (body.includes(quoteText)) {
+        comment.classList.add('quote-related');
+      }
+    });
   }
-
-  // Get the quote text
-  const quoteText = selectedQuote.textContent.trim();
-  console.log('Selected quote:', quoteText);
-
-  // Filter comments that contain the quote text or are the selected comment
-  return comments.filter(
-    (comment) =>
-      comment.body.includes(quoteText) ||
-      selectedComment.getAttribute('data-comment-id') === `${comment.id}`
-  );
 }
 
 const createCommentHeader = (comment, issueRef, isActive, company) => {
@@ -96,8 +104,8 @@ function setupQuoteHandlers(container) {
           parentComment.classList.toggle('comment-selected');
         }
 
-        // Update the comments display without re-adding handlers
-        updateCommentsDisplay();
+        // Update visibility
+        updateCommentVisibility();
       });
     });
 }
@@ -107,10 +115,7 @@ function updateCommentsDisplay() {
   if (!container) return;
 
   try {
-    const filteredComments = modifyFilteredComments(
-      state.getFilteredComments()
-    );
-    const commentsHtml = filteredComments
+    const commentsHtml = state.allIssueComments
       .map((comment) => renderComment(comment))
       .join('');
 
@@ -121,10 +126,10 @@ function updateCommentsDisplay() {
 
     // Set up handlers after updating content
     setupQuoteHandlers(container);
+    updateCommentVisibility();
   } catch (error) {
     container.innerHTML = `<div class="error">Error updating comments: ${error.message}</div>`;
   }
 }
 
-// Update the exported function to use the new structure
 export const updateCommentsContent = updateCommentsDisplay;

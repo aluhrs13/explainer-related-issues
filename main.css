@@ -4,6 +4,20 @@
   padding: 0 1rem;
 }
 
+/* Comment visibility rules */
+.comment {
+  display: block;
+}
+
+.comment.filtered {
+  display: none;
+}
+
+/* Quote filtering */
+.quote-filtering .comment:not(.quote-related):not(.comment-selected) {
+  display: none;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }
