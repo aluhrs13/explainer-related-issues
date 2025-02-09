@@ -27,11 +27,30 @@ function updateCommentVisibility() {
   if (selectedQuote) {
     container.classList.add('quote-filtering');
     const quoteText = selectedQuote.textContent.trim();
+    const selectedComment = selectedQuote.closest('.comment');
+    const selectedCommentBody =
+      selectedComment.querySelector('.comment-body').textContent;
 
-    // Mark comments containing the quote as related
-    container.querySelectorAll('.comment:not(.filtered)').forEach((comment) => {
+    // Get all non-filtered comments
+    const comments = Array.from(
+      container.querySelectorAll('.comment:not(.filtered)')
+    );
+
+    comments.forEach((comment) => {
+      if (comment === selectedComment) {
+        comment.classList.add('quote-related');
+        return;
+      }
+
       const body = comment.querySelector('.comment-body').textContent;
-      if (body.includes(quoteText)) {
+      // Check if the comment contains the selected quote or quotes any part of the selected comment
+      if (
+        body.includes(quoteText) ||
+        (comment.querySelectorAll('blockquote').length > 0 &&
+          Array.from(comment.querySelectorAll('blockquote')).some((quote) =>
+            selectedCommentBody.includes(quote.textContent.trim())
+          ))
+      ) {
         comment.classList.add('quote-related');
       }
     });
