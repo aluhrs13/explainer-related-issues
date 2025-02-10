@@ -10,12 +10,13 @@
 }
 
 .comment.filtered {
-  display: none;
+  display: none !important;
 }
 
 /* Quote filtering */
-.quote-filtering .comment:not(.quote-related):not(.comment-selected) {
-  display: none;
+.comments-section.quote-filtering
+  .comment:not(.quote-related):not(.comment-selected) {
+  display: none !important;
 }
 
 .form-group {

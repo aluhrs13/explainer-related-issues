@@ -4,54 +4,35 @@ function updateCommentVisibility() {
   const container = document.getElementById('issueContainers');
   const selectedQuote = document.querySelector('.quote-selected');
 
-  // Reset all comments first
-  container.classList.remove('quote-filtering');
-  container.querySelectorAll('.comment').forEach((comment) => {
-    comment.classList.remove('filtered', 'quote-related');
-  });
-
-  // Apply issue filter
-  if (state.activeFilter) {
-    container.querySelectorAll('.comment').forEach((comment) => {
-      const issueRef = comment.querySelector('.issue-reference').dataset.issue;
-      if (issueRef !== state.activeFilter) {
-        comment.classList.add('filtered');
-      }
-    });
-  }
+  // Reset quote-related states
+  state.allIssueComments.forEach((comment) => comment.setQuoteRelated(false));
 
   // Apply quote filter if a quote is selected
   if (selectedQuote) {
-    container.classList.add('quote-filtering');
     const quoteText = selectedQuote.textContent.trim();
-    const selectedComment = selectedQuote.closest('.comment');
-    const selectedCommentBody =
-      selectedComment.querySelector('.comment-body').textContent;
-
-    // Get all non-filtered comments
-    const comments = Array.from(
-      container.querySelectorAll('.comment:not(.filtered)')
+    const selectedComment = state.allIssueComments.find(
+      (comment) =>
+        comment.id === selectedQuote.closest('.comment').dataset.commentId
     );
 
-    comments.forEach((comment) => {
-      if (comment === selectedComment) {
-        comment.classList.add('quote-related');
-        return;
-      }
+    if (selectedComment) {
+      selectedComment.setQuoteRelated(true);
 
-      const body = comment.querySelector('.comment-body').textContent;
-      // Check if the comment contains the selected quote or quotes any part of the selected comment
-      if (
-        body.includes(quoteText) ||
-        (comment.querySelectorAll('blockquote').length > 0 &&
-          Array.from(comment.querySelectorAll('blockquote')).some((quote) =>
-            selectedCommentBody.includes(quote.textContent.trim())
-          ))
-      ) {
-        comment.classList.add('quote-related');
-      }
-    });
+      state.allIssueComments.forEach((comment) => {
+        if (!comment.isFiltered && comment !== selectedComment) {
+          if (
+            comment.hasQuote(quoteText) ||
+            comment.containsQuoteFrom(selectedComment)
+          ) {
+            comment.setQuoteRelated(true);
+          }
+        }
+      });
+    }
   }
+
+  // Trigger re-render
+  updateCommentsDisplay(selectedQuote);
 }
 
 function setupQuoteHandlers(container) {
@@ -84,12 +65,13 @@ function setupQuoteHandlers(container) {
     });
 }
 
-function updateCommentsDisplay() {
+function updateCommentsDisplay(selectedQuote = null) {
   const container = document.getElementById('issueContainers');
   if (!container) return;
 
   try {
-    const commentsHtml = state.allIssueComments
+    const commentsHtml = state
+      .getFilteredComments()
       .map((comment) =>
         comment.toHTML(
           state.activeFilter === comment.issueRef,
@@ -98,14 +80,33 @@ function updateCommentsDisplay() {
       )
       .join('');
 
+    // Preserve the quote-filtering class if a quote is selected
+    const quoteFilteringClass = selectedQuote ? ' quote-filtering' : '';
+
     container.innerHTML = `
-      <div class="comments-section">
+      <div class="comments-section${quoteFilteringClass}">
         ${commentsHtml}
       </div>`;
 
     // Set up handlers after updating content
     setupQuoteHandlers(container);
-    updateCommentVisibility();
+
+    // Reapply quote-selected class if needed
+    if (selectedQuote) {
+      const selectedText = selectedQuote.textContent.trim();
+      const allQuotes = container.querySelectorAll('blockquote');
+      const newQuote = Array.from(allQuotes).find(
+        (quote) => quote.textContent.trim() === selectedText
+      );
+
+      if (newQuote) {
+        newQuote.classList.add('quote-selected');
+        const parentComment = newQuote.closest('.comment');
+        if (parentComment) {
+          parentComment.classList.add('comment-selected');
+        }
+      }
+    }
   } catch (error) {
     container.innerHTML = `<div class="error">Error updating comments: ${error.message}</div>`;
   }

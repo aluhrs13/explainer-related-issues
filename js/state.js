@@ -25,6 +25,8 @@ export class Comment {
     this.issueNumber = issueNumber;
     this.issueTitle = issueTitle;
     this.isOriginalPost = isOriginalPost;
+    this.isFiltered = false;
+    this.isQuoteRelated = false;
   }
 
   get issueRef() {
@@ -35,11 +37,17 @@ export class Comment {
     try {
       const header = this.createHeader(isActive, company);
       const body = `<div class="comment-body">${this.parseMarkdown()}</div>`;
+      const classes = [
+        'comment',
+        this.isOriginalPost ? 'original-post' : '',
+        this.isFiltered ? 'filtered' : '',
+        this.isQuoteRelated ? 'quote-related' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
 
       return `
-        <div class="comment${
-          this.isOriginalPost ? ' original-post' : ''
-        }" data-comment-id="${this.id}">
+        <div class="${classes}" data-comment-id="${this.id}">
           ${header}
           ${body}
         </div>`;
@@ -69,6 +77,28 @@ export class Comment {
 
   parseMarkdown() {
     return window.marked ? window.marked.parse(this.body) : this.body;
+  }
+
+  setFiltered(filtered) {
+    this.isFiltered = filtered;
+    return this;
+  }
+
+  setQuoteRelated(related) {
+    this.isQuoteRelated = related;
+    return this;
+  }
+
+  hasQuote(text) {
+    return this.body.includes(text);
+  }
+
+  containsQuoteFrom(otherComment) {
+    // Split by blockquotes and check if any quote matches
+    const quotes = this.body.match(/>(.*?)(\n\n|$)/gs) || [];
+    return quotes.some((quote) =>
+      otherComment.body.includes(quote.replace(/^>\s*/gm, '').trim())
+    );
   }
 }
 
@@ -211,11 +241,7 @@ export class StateManager {
    * @returns {Comment[]}
    */
   getFilteredComments() {
-    return this.allIssueComments.filter(
-      (comment) =>
-        !this.activeFilter ||
-        `${comment.repo}#${comment.issueNumber}` === this.activeFilter
-    );
+    return this.allIssueComments.filter((comment) => !comment.isFiltered);
   }
 
   // Issue tracking methods

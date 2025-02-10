@@ -182,6 +182,14 @@ function handleIssueRemoval(issueRef) {
 
 function handleIssueFilter(issueRef) {
   state.setActiveFilter(state.activeFilter === issueRef ? null : issueRef);
+
+  // Update filtered state of comments based on active filter
+  state.allIssueComments.forEach((comment) => {
+    comment.setFiltered(
+      state.activeFilter && comment.issueRef !== state.activeFilter
+    );
+  });
+
   updateCommentsContent();
 }
 
