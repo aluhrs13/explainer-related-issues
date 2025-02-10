@@ -1,37 +1,24 @@
+// Core imports
 import { state } from './state.js';
+
+// API imports
 import { getUserCompany, getAllComments, getIssue } from './api.js';
+
+// UI imports
 import {
   createLoadingIndicator,
   renderIssueTable,
   updateCommentsContent,
 } from './ui.js';
 
-class ProgressHandler {
-  constructor(loadingIndicator) {
-    this.loadingIndicator = loadingIndicator;
-  }
+import { ProgressHandler } from './components/progress-handler.js';
 
-  update(issueRef, message) {
-    const progressElement = this.loadingIndicator.querySelector('span');
-    if (progressElement) {
-      progressElement.textContent = `${issueRef}: ${message}`;
-    }
-  }
-
-  setError(message) {
-    this.loadingIndicator.innerHTML = `<p>Error: ${message}</p>`;
-  }
-
-  setEmpty() {
-    this.loadingIndicator.innerHTML =
-      '<p>No issues being tracked. Add an issue to see comments.</p>';
-  }
-
-  remove() {
-    this.loadingIndicator.remove();
-  }
-}
-
+/**
+ * Fetches issue data and comments for a given repository and issue number
+ * @param {string} repo - Repository name
+ * @param {number} issueNumber - Issue number
+ * @param {ProgressHandler} progressHandler - Handler for progress updates
+ */
 async function fetchIssueData(repo, issueNumber, progressHandler) {
   const issueRef = `${repo}#${issueNumber}`;
 
@@ -45,40 +32,46 @@ async function fetchIssueData(repo, issueNumber, progressHandler) {
     ]);
 
     if (!issue) {
-      throw new Error('No issue data received');
+      throw new Error(`Issue ${issueRef} not found`);
     }
 
-    console.log(`Received issue data for ${issueRef}:`, {
+    console.log(`Received issue data for ${issueRef}`, {
       issue,
       commentsCount: comments.length,
     });
 
-    return {
-      issue,
-      comments,
-      issueRef,
-    };
+    return { issue, comments, issueRef };
   } catch (error) {
     console.error(`Error fetching data for ${issueRef}:`, error);
-    progressHandler.update(issueRef, `Error: ${error.message}`);
+    progressHandler.setError(error.message);
     return null;
   }
 }
 
+/**
+ * Fetches company information for all unique users in comments
+ * @param {Array} comments - Array of comments
+ * @returns {Promise<Array>} Array of [username, company] pairs
+ */
 async function fetchUserCompanies(comments) {
   const uniqueUsers = new Set(comments.map((comment) => comment.user.login));
   console.log('Fetching company info for users:', Array.from(uniqueUsers));
 
-  const companies = await Promise.all(
+  return Promise.all(
     [...uniqueUsers].map(async (username) => {
       const company = await getUserCompany(username);
       return [username, company];
     })
   );
-
-  return companies;
 }
 
+/**
+ * Processes issue comments and combines with issue metadata
+ * @param {Object} issue - Issue data
+ * @param {Array} comments - Comments data
+ * @param {string} repo - Repository name
+ * @param {number} issueNumber - Issue number
+ */
 function processIssueComments(issue, comments, repo, issueNumber) {
   return [
     {
@@ -99,6 +92,11 @@ function processIssueComments(issue, comments, repo, issueNumber) {
   ];
 }
 
+/**
+ * Processes a single tracked issue
+ * @param {string} issueRef - Issue reference (repo#number)
+ * @param {ProgressHandler} progressHandler - Handler for progress updates
+ */
 async function processTrackedIssue(issueRef, progressHandler) {
   const [repo, issueNumber] = issueRef.split('#');
 
@@ -120,6 +118,63 @@ async function processTrackedIssue(issueRef, progressHandler) {
   state.addComments(commentsWithMeta);
 }
 
+/**
+ * Updates the filtered state of comments based on reference relationships
+ * @param {string} activeFilter - Active issue filter
+ */
+function updateFilteredComments(activeFilter) {
+  // First mark all comments that don't match the active filter
+  state.allIssueComments.forEach((comment) => {
+    comment.setFiltered(activeFilter && comment.issueRef !== activeFilter);
+  });
+
+  if (!activeFilter) return;
+
+  // Build a map of comment ID to all related comments
+  const relationshipMap = new Map();
+  state.allIssueComments.forEach((comment) => {
+    if (!relationshipMap.has(comment.id)) {
+      relationshipMap.set(comment.id, new Set());
+    }
+
+    comment.references.forEach((referencedId) => {
+      relationshipMap.get(comment.id).add(referencedId);
+      if (!relationshipMap.has(referencedId)) {
+        relationshipMap.set(referencedId, new Set());
+      }
+      relationshipMap.get(referencedId).add(comment.id);
+    });
+  });
+
+  // Process the reference graph
+  const visibleIds = new Set(
+    state.allIssueComments
+      .filter((comment) => !comment.isFiltered)
+      .map((comment) => comment.id)
+  );
+  const toProcess = [...visibleIds];
+
+  while (toProcess.length > 0) {
+    const currentId = toProcess.pop();
+    const relatedIds = relationshipMap.get(currentId) || new Set();
+
+    for (const relatedId of relatedIds) {
+      if (!visibleIds.has(relatedId)) {
+        visibleIds.add(relatedId);
+        toProcess.push(relatedId);
+      }
+    }
+  }
+
+  // Update filtered state
+  state.allIssueComments.forEach((comment) => {
+    if (visibleIds.has(comment.id)) {
+      comment.setFiltered(false);
+    }
+  });
+}
+
+// Event handlers
 async function refreshAllComments() {
   const progressHandler = new ProgressHandler(
     createLoadingIndicator('Refreshing comments...')
@@ -182,14 +237,7 @@ function handleIssueRemoval(issueRef) {
 
 function handleIssueFilter(issueRef) {
   state.setActiveFilter(state.activeFilter === issueRef ? null : issueRef);
-
-  // Update filtered state of comments based on active filter
-  state.allIssueComments.forEach((comment) => {
-    comment.setFiltered(
-      state.activeFilter && comment.issueRef !== state.activeFilter
-    );
-  });
-
+  updateFilteredComments(state.activeFilter);
   updateCommentsContent();
 }
 
