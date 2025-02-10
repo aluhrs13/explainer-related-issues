@@ -75,6 +75,7 @@ async function fetchUserCompanies(comments) {
 function processIssueComments(issue, comments, repo, issueNumber) {
   return [
     {
+      id: `issue-${repo.replace('/', '-')}-${issueNumber}`,
       user: issue.user,
       created_at: issue.created_at,
       body: issue.body,

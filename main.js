@@ -1,6 +1,6 @@
 import { state } from './js/state.js';
 import { setupEventListeners, refreshAllComments } from './js/handlers.js';
-import { renderIssueTable } from './js/ui.js';
+import { renderIssueTable, setupCommentClickHandlers } from './js/ui.js';
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Setup event listeners
   setupEventListeners();
+  setupCommentClickHandlers();
 
   // Load saved state and refresh comments
   await state.loadSavedState();

@@ -12,6 +12,12 @@
   padding: 1rem;
   margin-bottom: 1rem;
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.comment:hover {
+  border-color: #0366d6;
+  box-shadow: 0 0 0 1px #0366d6;
 }
 
 .comment.filtered {
