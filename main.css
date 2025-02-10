@@ -4,18 +4,17 @@
   padding: 0 1rem;
 }
 
-/* Comment visibility rules */
+/* Comment visibility and selection states */
 .comment {
   display: block;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
 }
 
 .comment.filtered {
-  display: none !important;
-}
-
-/* Quote filtering */
-.comments-section.quote-filtering
-  .comment:not(.quote-related):not(.comment-selected) {
   display: none !important;
 }
 
@@ -54,19 +53,6 @@ button:hover {
   margin-top: 2rem;
 }
 
-.comment {
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  transition: all 0.2s ease;
-}
-
-.comment.comment-selected {
-  border-color: #0366d6;
-  background-color: #f8fafd;
-}
-
 .comment-header {
   display: flex;
   align-items: center;
@@ -101,28 +87,13 @@ button:hover {
   font-family: monospace;
 }
 
+/* Quote and blockquote styling */
 .comment-body blockquote {
   border-left: 4px solid #dfe2e5;
   color: #6a737d;
   margin: 0;
   padding-left: 1em;
-  transition: all 0.2s ease;
-}
-
-.comment-body blockquote:hover {
-  border-left-color: #0366d6;
-  background-color: #f1f8ff;
-}
-
-.comment.comment-selected blockquote {
-  border-left-color: #0366d6;
-  background-color: #f1f8ff;
-}
-
-.comment-body blockquote.blockquote-selected {
-  border-left-color: #0366d6;
-  background-color: #f1f8ff;
-  border-right: 2px solid #0366d6;
+  transition: border-left-color 0.2s ease, background-color 0.2s ease;
 }
 
 .comment-body img {

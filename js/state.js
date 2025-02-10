@@ -4,7 +4,6 @@ import { Comment } from './models/comment.js';
  * @typedef {Object} IStateManager
  * @property {Map<string, string>} userCompanyMap
  * @property {Comment[]} allIssueComments
- * @property {string | null} activeFilter
  * @property {Set<string>} trackedIssues
  * @property {Set<Function>} subscribers
  */
@@ -12,14 +11,12 @@ import { Comment } from './models/comment.js';
 export class StateManager {
   /** @type {Map<string, string>} */ userCompanyMap;
   /** @type {Comment[]} */ allIssueComments;
-  /** @type {string | null} */ activeFilter;
   /** @type {Set<string>} */ trackedIssues;
   /** @type {Set<Function>} */ subscribers;
 
   constructor() {
     this.userCompanyMap = new Map();
     this.allIssueComments = [];
-    this.activeFilter = null;
     this.trackedIssues = new Set();
     this.subscribers = new Set();
     this.loadSavedState().catch((err) =>
@@ -131,21 +128,6 @@ export class StateManager {
   }
 
   /**
-   * @param {string|null} filter
-   */
-  setActiveFilter(filter) {
-    this.activeFilter = filter;
-    this.notifySubscribers();
-  }
-
-  /**
-   * @returns {Comment[]}
-   */
-  getFilteredComments() {
-    return this.allIssueComments.filter((comment) => !comment.isFiltered);
-  }
-
-  /**
    * @param {string} issueRef
    * @returns {boolean}
    */
@@ -164,9 +146,6 @@ export class StateManager {
   removeTrackedIssue(issueRef) {
     if (!this.trackedIssues.has(issueRef)) return false;
     this.trackedIssues.delete(issueRef);
-    if (this.activeFilter === issueRef) {
-      this.activeFilter = null;
-    }
     this.saveState();
     this.notifySubscribers();
     return true;

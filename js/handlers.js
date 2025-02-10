@@ -118,62 +118,6 @@ async function processTrackedIssue(issueRef, progressHandler) {
   state.addComments(commentsWithMeta);
 }
 
-/**
- * Updates the filtered state of comments based on reference relationships
- * @param {string} activeFilter - Active issue filter
- */
-function updateFilteredComments(activeFilter) {
-  // First mark all comments that don't match the active filter
-  state.allIssueComments.forEach((comment) => {
-    comment.setFiltered(activeFilter && comment.issueRef !== activeFilter);
-  });
-
-  if (!activeFilter) return;
-
-  // Build a map of comment ID to all related comments
-  const relationshipMap = new Map();
-  state.allIssueComments.forEach((comment) => {
-    if (!relationshipMap.has(comment.id)) {
-      relationshipMap.set(comment.id, new Set());
-    }
-
-    comment.references.forEach((referencedId) => {
-      relationshipMap.get(comment.id).add(referencedId);
-      if (!relationshipMap.has(referencedId)) {
-        relationshipMap.set(referencedId, new Set());
-      }
-      relationshipMap.get(referencedId).add(comment.id);
-    });
-  });
-
-  // Process the reference graph
-  const visibleIds = new Set(
-    state.allIssueComments
-      .filter((comment) => !comment.isFiltered)
-      .map((comment) => comment.id)
-  );
-  const toProcess = [...visibleIds];
-
-  while (toProcess.length > 0) {
-    const currentId = toProcess.pop();
-    const relatedIds = relationshipMap.get(currentId) || new Set();
-
-    for (const relatedId of relatedIds) {
-      if (!visibleIds.has(relatedId)) {
-        visibleIds.add(relatedId);
-        toProcess.push(relatedId);
-      }
-    }
-  }
-
-  // Update filtered state
-  state.allIssueComments.forEach((comment) => {
-    if (visibleIds.has(comment.id)) {
-      comment.setFiltered(false);
-    }
-  });
-}
-
 // Event handlers
 async function refreshAllComments() {
   const progressHandler = new ProgressHandler(
@@ -235,16 +179,9 @@ function handleIssueRemoval(issueRef) {
   return refreshAllComments();
 }
 
-function handleIssueFilter(issueRef) {
-  state.setActiveFilter(state.activeFilter === issueRef ? null : issueRef);
-  updateFilteredComments(state.activeFilter);
-  updateCommentsContent();
-}
-
 function setupEventListeners() {
   const addIssueButton = document.getElementById('addIssueButton');
   const issueTableBody = document.getElementById('issueTableBody');
-  const issueContainers = document.getElementById('issueContainers');
 
   addIssueButton?.addEventListener('click', async () => {
     const repo = document.getElementById('repo').value;
@@ -259,12 +196,6 @@ function setupEventListeners() {
   issueTableBody?.addEventListener('click', async (e) => {
     if (e.target.classList.contains('remove-issue')) {
       await handleIssueRemoval(e.target.dataset.issue);
-    }
-  });
-
-  issueContainers?.addEventListener('click', (e) => {
-    if (e.target.classList.contains('issue-reference')) {
-      handleIssueFilter(e.target.dataset.issue);
     }
   });
 }
