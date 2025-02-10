@@ -6,6 +6,72 @@
  * @property {number} issueNumber
  */
 
+export class Comment {
+  constructor({
+    id,
+    body,
+    created_at,
+    user,
+    repo,
+    issueNumber,
+    issueTitle,
+    isOriginalPost = false,
+  }) {
+    this.id = id;
+    this.body = body || '';
+    this.created_at = created_at;
+    this.user = user;
+    this.repo = repo;
+    this.issueNumber = issueNumber;
+    this.issueTitle = issueTitle;
+    this.isOriginalPost = isOriginalPost;
+  }
+
+  get issueRef() {
+    return `${this.repo}#${this.issueNumber}`;
+  }
+
+  toHTML(isActive, company) {
+    try {
+      const header = this.createHeader(isActive, company);
+      const body = `<div class="comment-body">${this.parseMarkdown()}</div>`;
+
+      return `
+        <div class="comment${
+          this.isOriginalPost ? ' original-post' : ''
+        }" data-comment-id="${this.id}">
+          ${header}
+          ${body}
+        </div>`;
+    } catch (error) {
+      return `<div class="comment error">Error rendering comment: ${error.message}</div>`;
+    }
+  }
+
+  createHeader(isActive, company) {
+    const authorInfo = `${this.user.login}${company ? ` (${company})` : ''}`;
+    const date = new Date(this.created_at).toLocaleDateString();
+    const issueButton = `<button class="issue-reference${
+      isActive ? ' active' : ''
+    }" data-issue="${this.issueRef}">${this.issueRef}</button>`;
+    const originalPostBadge = this.isOriginalPost
+      ? `<span class="original-post-badge">Original Post: ${this.issueTitle}</span>`
+      : '';
+
+    return `
+      <div class="comment-header">
+        <span class="comment-author">${authorInfo}</span>
+        <span class="comment-date">${date}</span>
+        ${issueButton}
+        ${originalPostBadge}
+      </div>`;
+  }
+
+  parseMarkdown() {
+    return window.marked ? window.marked.parse(this.body) : this.body;
+  }
+}
+
 export class StateManager {
   constructor() {
     this.userCompanyMap = new Map();
@@ -94,7 +160,7 @@ export class StateManager {
    */
   setComments(comments) {
     console.log('Setting comments:', comments);
-    this.allIssueComments = comments.map(this.normalizeComment);
+    this.allIssueComments = comments.map((c) => new Comment(c));
     console.log('State after setComments:', this.allIssueComments);
     this.notifySubscribers();
   }
@@ -104,7 +170,7 @@ export class StateManager {
    */
   addComments(comments) {
     console.log('Adding comments:', comments);
-    const processedComments = comments.map(this.normalizeComment);
+    const processedComments = comments.map((c) => new Comment(c));
     this.allIssueComments = [...this.allIssueComments, ...processedComments];
     this.sortCommentsByDate();
     console.log('State after addComments:', this.allIssueComments);

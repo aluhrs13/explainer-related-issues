@@ -1,8 +1,5 @@
 import { state } from '../state.js';
 
-const parseMarkdown = (text) =>
-  window.marked ? window.marked.parse(text) : text;
-
 function updateCommentVisibility() {
   const container = document.getElementById('issueContainers');
   const selectedQuote = document.querySelector('.quote-selected');
@@ -57,48 +54,6 @@ function updateCommentVisibility() {
   }
 }
 
-const createCommentHeader = (comment, issueRef, isActive, company) => {
-  const authorInfo = `${comment.user.login}${company ? ` (${company})` : ''}`;
-  const date = new Date(comment.created_at).toLocaleDateString();
-  const issueButton = `<button class="issue-reference${
-    isActive ? ' active' : ''
-  }" data-issue="${issueRef}">${issueRef}</button>`;
-  const originalPostBadge = comment.isOriginalPost
-    ? `<span class="original-post-badge">Original Post: ${comment.issueTitle}</span>`
-    : '';
-
-  return `
-    <div class="comment-header">
-      <span class="comment-author">${authorInfo}</span>
-      <span class="comment-date">${date}</span>
-      ${issueButton}
-      ${originalPostBadge}
-    </div>`;
-};
-
-export function renderComment(comment) {
-  const issueRef = `${comment.repo}#${comment.issueNumber}`;
-  const isActive = state.activeFilter === issueRef;
-  const company = state.getUserCompany(comment.user.login);
-
-  try {
-    const header = createCommentHeader(comment, issueRef, isActive, company);
-    const body = `<div class="comment-body">${parseMarkdown(
-      comment.body || ''
-    )}</div>`;
-
-    return `
-      <div class="comment${
-        comment.isOriginalPost ? ' original-post' : ''
-      }" data-comment-id="${comment.id}">
-        ${header}
-        ${body}
-      </div>`;
-  } catch (error) {
-    return `<div class="comment error">Error rendering comment: ${error.message}</div>`;
-  }
-}
-
 function setupQuoteHandlers(container) {
   container
     .querySelectorAll('.comment-body blockquote')
@@ -135,7 +90,12 @@ function updateCommentsDisplay() {
 
   try {
     const commentsHtml = state.allIssueComments
-      .map((comment) => renderComment(comment))
+      .map((comment) =>
+        comment.toHTML(
+          state.activeFilter === comment.issueRef,
+          state.getUserCompany(comment.user.login)
+        )
+      )
       .join('');
 
     container.innerHTML = `
