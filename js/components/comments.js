@@ -1,5 +1,33 @@
 import { state } from '../state.js';
 
+// Helper function to get all comments in the reference chain
+function getAllReferencedComments(commentId, visited = new Set()) {
+  if (visited.has(String(commentId))) {
+    return visited;
+  }
+
+  visited.add(String(commentId));
+
+  const comment = state.allIssueComments.find(
+    (c) => String(c.id) === String(commentId)
+  );
+  if (!comment) return visited;
+
+  // Add direct references
+  comment.references.forEach((refId) => {
+    getAllReferencedComments(refId, visited);
+  });
+
+  // Also follow reverse references
+  state.allIssueComments.forEach((c) => {
+    if (c.references.has(String(commentId))) {
+      getAllReferencedComments(c.id, visited);
+    }
+  });
+
+  return visited;
+}
+
 function filterComments(selectedCommentId, scrollToElement = null) {
   console.log('Filtering comments with selected ID:', selectedCommentId);
   const comments = document.querySelectorAll('.comment');
@@ -30,7 +58,10 @@ function filterComments(selectedCommentId, scrollToElement = null) {
   }
 
   console.log('Found selected comment:', selectedComment);
-  console.log('References:', [...selectedComment.references].map(String));
+
+  // Get all comments in the reference chain
+  const referencedComments = getAllReferencedComments(selectedCommentId_str);
+  console.log('All referenced comments:', [...referencedComments]);
 
   comments.forEach((commentEl) => {
     const commentId = commentEl.dataset.commentId;
@@ -38,20 +69,10 @@ function filterComments(selectedCommentId, scrollToElement = null) {
 
     if (!commentId) return;
 
-    const comment = state.allIssueComments.find(
-      (c) => String(c.id) === commentId
-    );
-    if (!comment) {
-      console.warn('Comment not found in state:', commentId);
-      return;
-    }
-
-    // Convert IDs to strings for comparison
-    const isReferenced = selectedComment.references.has(String(commentId));
-    const hasReference = comment.references.has(String(selectedCommentId));
     const isSelf = String(commentId) === selectedCommentId_str;
+    const isInReferenceChain = referencedComments.has(String(commentId));
 
-    if (!isReferenced && !hasReference && !isSelf) {
+    if (!isInReferenceChain && !isSelf) {
       commentEl.classList.add('filtered');
     } else {
       commentEl.classList.remove('filtered');
