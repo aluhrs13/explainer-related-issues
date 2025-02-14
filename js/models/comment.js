@@ -36,7 +36,7 @@ export class Comment {
     issueTitle,
     isOriginalPost = false,
   }) {
-    this.id = id;
+    this.id = String(id);
     this.body = body || '';
     this.created_at = created_at;
     this.user = user;
@@ -164,7 +164,27 @@ export class Comment {
    * @private
    */
   parseMarkdown() {
-    return window.marked ? window.marked.parse(this.body) : this.body;
+    if (!window.marked) return this.body;
+    
+    // Configure marked with secure defaults
+    window.marked.setOptions({
+      headerIds: false, // Disable header IDs to prevent XSS
+      mangle: false, // Disable mangling to prevent XSS
+      gfm: true, // Enable GitHub Flavored Markdown
+      breaks: true // Enable line breaks
+    });
+    
+    // Use DOMPurify if available, otherwise fall back to basic escaping
+    const parsed = window.marked.parse(this.body);
+    return window.DOMPurify ? 
+      window.DOMPurify.sanitize(parsed) : 
+      parsed.replace(/[<>&"']/g, c => ({
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[c]));
   }
 
   /**
@@ -200,7 +220,7 @@ export class Comment {
         .find((c) => this.isExactQuoteMatch(c.body, cleanQuote));
 
       if (referencedComment) {
-        this.references.add(referencedComment.id);
+        this.references.add(String(referencedComment.id));
       }
     }
   }
@@ -220,7 +240,7 @@ export class Comment {
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
       if (referencedComment) {
-        this.references.add(referencedComment.id);
+        this.references.add(String(referencedComment.id));
       }
     }
   }

@@ -75,7 +75,7 @@ async function fetchUserCompanies(comments) {
 function processIssueComments(issue, comments, repo, issueNumber) {
   return [
     {
-      id: `issue-${repo.replace('/', '-')}-${issueNumber}`,
+      id: String(`issue-${repo.replace('/', '-')}-${issueNumber}`),
       user: issue.user,
       created_at: issue.created_at,
       body: issue.body,
@@ -86,6 +86,7 @@ function processIssueComments(issue, comments, repo, issueNumber) {
     },
     ...comments.map((comment) => ({
       ...comment,
+      id: String(comment.id),
       issueNumber,
       issueTitle: issue.title,
       repo,

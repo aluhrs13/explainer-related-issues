@@ -20,6 +20,19 @@
   box-shadow: 0 0 0 1px #0366d6;
 }
 
+/* Selected comment styling */
+.comment[data-comment-id] {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comment.selected {
+  border-color: #0366d6;
+  box-shadow: 0 0 0 2px #0366d6, 0 4px 8px rgba(3, 102, 214, 0.2);
+  background-color: #f6f8fa;
+  position: relative;
+}
+
 .comment.filtered {
   display: none !important;
 }
