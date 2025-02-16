@@ -1,46 +1,75 @@
-/**
- * Handles progress updates and loading states in the UI
- */
-export class ProgressHandler {
-  /**
-   * @param {HTMLElement} loadingIndicator - The DOM element to show loading state
-   */
-  constructor(loadingIndicator) {
-    this.loadingIndicator = loadingIndicator;
-  }
+import { LitElement, html, css } from 'lit';
 
-  /**
-   * Updates the progress message for a specific issue
-   * @param {string} issueRef - The issue reference (repo#number)
-   * @param {string} message - The progress message to display
-   */
-  update(issueRef, message) {
-    const progressElement = this.loadingIndicator.querySelector('span');
-    if (progressElement) {
-      progressElement.textContent = `${issueRef}: ${message}`;
+export class ProgressHandler extends LitElement {
+  static properties = {
+    issueRef: { type: String },
+    message: { type: String },
+    isError: { type: Boolean },
+    isEmpty: { type: Boolean },
+  };
+
+  static styles = css`
+    :host {
+      display: block;
     }
+    .error {
+      color: #cb2431;
+    }
+    .empty {
+      color: #586069;
+      font-style: italic;
+    }
+    p {
+      margin: 1rem 0;
+    }
+  `;
+
+  constructor() {
+    super();
+    this.issueRef = '';
+    this.message = '';
+    this.isError = false;
+    this.isEmpty = false;
   }
 
-  /**
-   * Shows an error message
-   * @param {string} message - The error message to display
-   */
+  render() {
+    if (this.isEmpty) {
+      return html`<p class="empty">
+        No issues being tracked. Add an issue to see comments.
+      </p>`;
+    }
+
+    if (this.isError) {
+      return html`<p class="error">Error: ${this.message}</p>`;
+    }
+
+    if (this.issueRef && this.message) {
+      return html`<p>${this.issueRef}: ${this.message}</p>`;
+    }
+
+    return html``;
+  }
+
+  update(issueRef, message) {
+    this.issueRef = issueRef;
+    this.message = message;
+    this.isError = false;
+    this.isEmpty = false;
+  }
+
   setError(message) {
-    this.loadingIndicator.innerHTML = `<p>Error: ${message}</p>`;
+    this.message = message;
+    this.isError = true;
+    this.isEmpty = false;
+    this.issueRef = '';
   }
 
-  /**
-   * Shows an empty state message
-   */
   setEmpty() {
-    this.loadingIndicator.innerHTML =
-      '<p>No issues being tracked. Add an issue to see comments.</p>';
-  }
-
-  /**
-   * Removes the loading indicator from the DOM
-   */
-  remove() {
-    this.loadingIndicator.remove();
+    this.isEmpty = true;
+    this.isError = false;
+    this.message = '';
+    this.issueRef = '';
   }
 }
+
+customElements.define('progress-handler', ProgressHandler);

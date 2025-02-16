@@ -1,3 +1,6 @@
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
 /**
  * @typedef {Object} CommentData
  * @property {string} id
@@ -164,27 +167,16 @@ export class Comment {
    * @private
    */
   parseMarkdown() {
-    if (!window.marked) return this.body;
-    
     // Configure marked with secure defaults
-    window.marked.setOptions({
+    marked.setOptions({
       headerIds: false, // Disable header IDs to prevent XSS
       mangle: false, // Disable mangling to prevent XSS
       gfm: true, // Enable GitHub Flavored Markdown
-      breaks: true // Enable line breaks
+      breaks: true, // Enable line breaks
     });
-    
-    // Use DOMPurify if available, otherwise fall back to basic escaping
-    const parsed = window.marked.parse(this.body);
-    return window.DOMPurify ? 
-      window.DOMPurify.sanitize(parsed) : 
-      parsed.replace(/[<>&"']/g, c => ({
-        '<': '&lt;',
-        '>': '&gt;',
-        '&': '&amp;',
-        '"': '&quot;',
-        "'": '&#039;'
-      }[c]));
+
+    const parsed = marked(this.body);
+    return DOMPurify.sanitize(parsed);
   }
 
   /**

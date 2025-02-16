@@ -175,15 +175,17 @@ async function handleAddIssue(repo, issueNumber) {
   return true;
 }
 
-function handleIssueRemoval(issueRef) {
-  state.removeTrackedIssue(issueRef);
-  renderIssueTable();
-  return refreshAllComments();
+async function handleIssueRemoval(issueRef) {
+  if (state.removeTrackedIssue(issueRef)) {
+    renderIssueTable();
+    await refreshAllComments();
+  }
+  return true;
 }
 
 function setupEventListeners() {
   const addIssueButton = document.getElementById('addIssueButton');
-  const issueTableBody = document.getElementById('issueTableBody');
+  const issueTable = document.querySelector('issue-table');
 
   addIssueButton?.addEventListener('click', async () => {
     const repo = document.getElementById('repo').value;
@@ -195,10 +197,8 @@ function setupEventListeners() {
     }
   });
 
-  issueTableBody?.addEventListener('click', async (e) => {
-    if (e.target.classList.contains('remove-issue')) {
-      await handleIssueRemoval(e.target.dataset.issue);
-    }
+  issueTable?.addEventListener('issue-removed', async (e) => {
+    await handleIssueRemoval(e.detail.issue);
   });
 }
 

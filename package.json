@@ -1,0 +1,23 @@
+{
+  "name": "explainer-related-issues",
+  "version": "1.0.0",
+  "description": "This project is two things:\r 1. A playground for me to work with bleeding edge AI coding tools. As such, it doesn't represent something I've \"actually\" written.\r 2. An attempt at some tooling to better keep track of numberous GitHub issues related to web platform explainers.",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dompurify": "^3.2.4",
+    "lit": "^3.2.1",
+    "marked": "^15.0.7"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
