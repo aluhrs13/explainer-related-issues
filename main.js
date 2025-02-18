@@ -2,7 +2,6 @@ import { state } from './js/state.js';
 import { setupEventListeners, refreshAllComments } from './js/handlers.js';
 import { renderIssueTable } from './js/ui.js';
 import './js/components/comments.js';
-import './js/components/comment-list.js';
 import './js/components/table.js'; // Add import for issue-table component
 
 document.addEventListener('DOMContentLoaded', async () => {

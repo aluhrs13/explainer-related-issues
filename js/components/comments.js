@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { state } from '../state.js';
+import './comment-item.js';
 
 export class CommentsSection extends LitElement {
   static properties = {
@@ -33,11 +34,17 @@ export class CommentsSection extends LitElement {
       <div class="comments-section">
         ${this.comments.length === 0
           ? html`<div class="no-comments">No comments found</div>`
-          : html`<comment-list
-              .comments=${this.comments}
-              .userCompanies=${Object.fromEntries(state.userCompanyMap)}
-              @filter-comments=${this._handleFilterComments}
-            ></comment-list>`}
+          : this.comments.map(
+              (comment) => html`
+                <comment-item
+                  .comment=${comment}
+                  .userCompany=${Object.fromEntries(state.userCompanyMap)[
+                    comment.user.login
+                  ] || ''}
+                  @comment-selected=${this._handleFilterComments}
+                ></comment-item>
+              `
+            )}
       </div>
     `;
   }

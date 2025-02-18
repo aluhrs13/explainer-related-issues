@@ -47,16 +47,6 @@ export class CommentItem extends LitElement {
     .comment-date {
       color: #586069;
     }
-    .issue-reference {
-      background-color: #f6f8fa;
-      padding: 0.25rem 0.5rem;
-      border-radius: 2rem;
-      font-size: 0.875rem;
-      color: #586069;
-      margin-left: 0.5rem;
-      border: 1px solid transparent;
-      cursor: pointer;
-    }
     .original-post-badge {
       background-color: #0366d6;
       color: white;
@@ -127,12 +117,6 @@ export class CommentItem extends LitElement {
       <div class="comment-header">
         <span class="comment-author">${authorInfo}</span>
         <span class="comment-date">${date}</span>
-        <button class="issue-reference">${this.comment.issueRef}</button>
-        ${this.comment.isOriginalPost
-          ? html`<span class="original-post-badge"
-              >Original Post: ${this.comment.issueTitle}</span
-            >`
-          : ''}
       </div>
     `;
   }
