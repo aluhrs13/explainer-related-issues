@@ -43,10 +43,3 @@ export class LoadingIndicator extends LitElement {
 }
 
 customElements.define('loading-indicator', LoadingIndicator);
-
-// For backward compatibility with existing code
-export function createLoadingIndicator(message) {
-  const indicator = document.createElement('loading-indicator');
-  indicator.message = message;
-  return indicator;
-}

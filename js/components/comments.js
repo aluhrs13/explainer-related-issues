@@ -62,17 +62,3 @@ export class CommentsSection extends LitElement {
 }
 
 customElements.define('comments-section', CommentsSection);
-
-// For backward compatibility with existing code
-export function updateCommentsContent() {
-  const container = document.getElementById('issueContainers');
-  if (!container) return;
-
-  if (!container.querySelector('comments-section')) {
-    const commentsSection = document.createElement('comments-section');
-    container.appendChild(commentsSection);
-  }
-
-  const section = container.querySelector('comments-section');
-  section.comments = state.allIssueComments;
-}

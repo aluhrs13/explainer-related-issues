@@ -1,16 +1,5 @@
-// Core imports
 import { state } from './state.js';
-
-// API imports
 import { getUserCompany, getAllComments, getIssue } from './api.js';
-
-// UI imports
-import {
-  createLoadingIndicator,
-  renderIssueTable,
-  updateCommentsContent,
-} from './ui.js';
-
 import { ProgressHandler } from './components/progress-handler.js';
 
 /**
@@ -122,9 +111,9 @@ async function processTrackedIssue(issueRef, progressHandler) {
 
 // Event handlers
 async function refreshAllComments() {
-  const progressHandler = new ProgressHandler(
-    createLoadingIndicator('Refreshing comments...')
-  );
+  const loadingIndicator = document.createElement('loading-indicator');
+  loadingIndicator.message = 'Refreshing comments...';
+  const progressHandler = new ProgressHandler(loadingIndicator);
 
   try {
     if (!state.trackedIssues?.size) {
@@ -150,8 +139,7 @@ async function refreshAllComments() {
     );
 
     progressHandler.remove();
-    console.log('Updating comments display...');
-    updateCommentsContent();
+    console.log('Comments updated via state changes');
   } catch (error) {
     console.error('Error in refreshAllComments:', error);
     progressHandler.setError(error.message);
@@ -170,14 +158,14 @@ async function handleAddIssue(repo, issueNumber) {
     return false;
   }
 
-  renderIssueTable();
+  // Issue table will update via state subscription
   await refreshAllComments();
   return true;
 }
 
 async function handleIssueRemoval(issueRef) {
   if (state.removeTrackedIssue(issueRef)) {
-    renderIssueTable();
+    // Issue table will update via state subscription
     await refreshAllComments();
   }
   return true;

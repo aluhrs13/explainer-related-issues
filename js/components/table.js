@@ -93,11 +93,3 @@ export class IssueTable extends LitElement {
 }
 
 customElements.define('issue-table', IssueTable);
-
-// For backward compatibility with existing code
-export function renderIssueTable() {
-  const issueTable = document.querySelector('issue-table');
-  if (issueTable) {
-    issueTable.issues = Array.from(state.trackedIssues);
-  }
-}
