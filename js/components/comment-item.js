@@ -131,10 +131,7 @@ export class CommentItem extends LitElement {
                         (referencedComment.body.length > 50 ? '...' : '')
                       : 'unknown comment';
                     return html`
-                      <div
-                        class="reference-item"
-                        @click=${(e) => this._handleReferenceClick(e, refId)}
-                      >
+                      <div class="reference-item">
                         ID: ${refId} - ${snippet}
                       </div>
                     `;
@@ -166,20 +163,6 @@ export class CommentItem extends LitElement {
         })
       );
     }
-  }
-
-  _handleReferenceClick(e, refId) {
-    e.stopPropagation();
-    this.dispatchEvent(
-      new CustomEvent('comment-selected', {
-        detail: {
-          commentId: refId,
-          clear: false,
-        },
-        bubbles: true,
-        composed: true,
-      })
-    );
   }
 }
 
