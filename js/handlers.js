@@ -1,22 +1,24 @@
 import { state } from './state.js';
 import { getUserCompany, getAllComments, getIssue } from './api.js';
-import { ProgressHandler } from './components/progress-handler.js';
+import { LoadingIndicator } from './components/loading.js';
 
 /**
  * Fetches issue data and comments for a given repository and issue number
  * @param {string} repo - Repository name
  * @param {number} issueNumber - Issue number
- * @param {ProgressHandler} progressHandler - Handler for progress updates
+ * @param {LoadingIndicator} loadingIndicator - Handler for progress updates
  */
-async function fetchIssueData(repo, issueNumber, progressHandler) {
+async function fetchIssueData(repo, issueNumber, loadingIndicator) {
   const issueRef = `${repo}#${issueNumber}`;
 
   try {
     console.log(`Fetching data for ${issueRef}`);
     const [issue, comments] = await Promise.all([
       getIssue(repo, issueNumber),
-      getAllComments(repo, issueNumber, (msg) =>
-        progressHandler.update(issueRef, msg)
+      getAllComments(
+        repo,
+        issueNumber,
+        (msg) => (loadingIndicator.message = msg)
       ),
     ]);
 
@@ -32,7 +34,7 @@ async function fetchIssueData(repo, issueNumber, progressHandler) {
     return { issue, comments, issueRef };
   } catch (error) {
     console.error(`Error fetching data for ${issueRef}:`, error);
-    progressHandler.setError(error.message);
+    loadingIndicator.message = error.message;
     return null;
   }
 }
@@ -86,9 +88,9 @@ function processIssueComments(issue, comments, repo, issueNumber) {
 /**
  * Processes a single tracked issue
  * @param {string} issueRef - Issue reference (repo#number)
- * @param {ProgressHandler} progressHandler - Handler for progress updates
+ * @param {LoadingIndicator} loadingIndicator - Handler for progress updates
  */
-async function processTrackedIssue(issueRef, progressHandler) {
+async function processTrackedIssue(issueRef, loadingIndicator) {
   const [repo, issueNumber] = issueRef.split('#');
 
   if (!repo || !issueNumber) {
@@ -96,7 +98,7 @@ async function processTrackedIssue(issueRef, progressHandler) {
     return;
   }
 
-  const result = await fetchIssueData(repo, issueNumber, progressHandler);
+  const result = await fetchIssueData(repo, issueNumber, loadingIndicator);
   if (!result) return;
 
   const { issue, comments } = result;
@@ -113,11 +115,12 @@ async function processTrackedIssue(issueRef, progressHandler) {
 async function refreshAllComments() {
   const loadingIndicator = document.createElement('loading-indicator');
   loadingIndicator.message = 'Refreshing comments...';
-  const progressHandler = new ProgressHandler(loadingIndicator);
+  document.body.appendChild(loadingIndicator);
 
   try {
     if (!state.trackedIssues?.size) {
-      progressHandler.setEmpty();
+      loadingIndicator.message = 'No issues to refresh';
+      setTimeout(() => loadingIndicator.remove(), 2000);
       return;
     }
 
@@ -129,7 +132,7 @@ async function refreshAllComments() {
 
     await Promise.all(
       Array.from(state.trackedIssues).map((issueRef) =>
-        processTrackedIssue(issueRef, progressHandler)
+        processTrackedIssue(issueRef, loadingIndicator)
       )
     );
 
@@ -138,11 +141,12 @@ async function refreshAllComments() {
       state.setUserCompany(username, company)
     );
 
-    progressHandler.remove();
+    loadingIndicator.remove();
     console.log('Comments updated via state changes');
   } catch (error) {
     console.error('Error in refreshAllComments:', error);
-    progressHandler.setError(error.message);
+    loadingIndicator.message = error.message;
+    setTimeout(() => loadingIndicator.remove(), 3000);
   }
 }
 

@@ -5,18 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Issue Comments</title>
     <link rel="stylesheet" href="main.css" />
+    <script type="module">
+      import { state } from './js/state.js';
+      import {
+        setupEventListeners,
+        refreshAllComments,
+      } from './js/handlers.js';
+      import './js/components/comments.js';
+      import './js/components/table.js';
+
+      // Initialize the application
+      document.addEventListener('DOMContentLoaded', async () => {
+        setupEventListeners();
+
+        document.querySelector('.refresh-comments').onclick =
+          refreshAllComments;
+
+        // Subscribe to state changes and initialize
+        state.subscribe(({ allIssueComments, trackedIssues }) => {
+          document.querySelector('comments-section').comments =
+            allIssueComments;
+          document.querySelector('issue-table').issues =
+            Array.from(trackedIssues);
+        });
+
+        await state.loadSavedState();
+        if (state.trackedIssues.size > 0) {
+          document.querySelector('issue-table').issues = Array.from(
+            state.trackedIssues
+          );
+          await refreshAllComments();
+        }
+      });
+    </script>
     <script>
-      // Register service worker
+      // Service worker registration
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        addEventListener('load', () => {
           navigator.serviceWorker
             .register('sw.js')
-            .then((registration) => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch((err) => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
+            .then(() => console.log('ServiceWorker registration successful'))
+            .catch((err) =>
+              console.log('ServiceWorker registration failed:', err)
+            );
         });
       }
     </script>
@@ -26,6 +57,7 @@
       <h1>GitHub Issue Comments Viewer</h1>
 
       <div id="issueTable" class="issue-table">
+        <button class="refresh-comments">Refresh All Comments</button>
         <issue-table></issue-table>
         <div class="add-issue-form">
           <input
@@ -46,8 +78,9 @@
         </div>
       </div>
 
-      <div id="issueContainers"></div>
+      <div id="issueContainers">
+        <comments-section></comments-section>
+      </div>
     </div>
-    <script type="module" src="/main.js"></script>
   </body>
 </html>

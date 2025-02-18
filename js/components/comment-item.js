@@ -94,6 +94,11 @@ export class CommentItem extends LitElement {
       'original-post': this.comment.isOriginalPost,
     };
 
+    const date = new Date(this.comment.created_at).toLocaleDateString();
+    const authorInfo = this.userCompany
+      ? `${this.comment.user.login} (${this.userCompany})`
+      : this.comment.user.login;
+
     return html`
       <div
         class="${Object.entries(commentClasses)
@@ -102,56 +107,42 @@ export class CommentItem extends LitElement {
           .join(' ')}"
         @click=${this._handleClick}
       >
-        ${this._renderHeader()} ${this._renderBody()} ${this._renderFooter()}
-      </div>
-    `;
-  }
-
-  _renderHeader() {
-    const date = new Date(this.comment.created_at).toLocaleDateString();
-    const authorInfo = this.userCompany
-      ? `${this.comment.user.login} (${this.userCompany})`
-      : this.comment.user.login;
-
-    return html`
-      <div class="comment-header">
-        <span class="comment-author">${authorInfo}</span>
-        <span class="comment-date">${date}</span>
-      </div>
-    `;
-  }
-
-  _renderBody() {
-    return html`
-      <div class="comment-body">${this._renderMarkdown(this.comment.body)}</div>
-    `;
-  }
-
-  _renderFooter() {
-    if (!this.comment.references?.size) return '';
-
-    return html`
-      <div class="comment-footer">
-        <div class="references">
-          <div>References:</div>
-          ${[...this.comment.references].map((refId) => {
-            const referencedComment = this.comment.allIssueComments?.find(
-              (c) => c.id === refId
-            );
-            const snippet = referencedComment
-              ? referencedComment.body.slice(0, 50) +
-                (referencedComment.body.length > 50 ? '...' : '')
-              : 'unknown comment';
-            return html`
-              <div
-                class="reference-item"
-                @click=${(e) => this._handleReferenceClick(e, refId)}
-              >
-                ID: ${refId} - ${snippet}
-              </div>
-            `;
-          })}
+        <div class="comment-header">
+          <span class="comment-author">${authorInfo}</span>
+          <span class="comment-date">${date}</span>
         </div>
+
+        <div class="comment-body">
+          ${this._renderMarkdown(this.comment.body)}
+        </div>
+
+        ${this.comment.references?.size
+          ? html`
+              <div class="comment-footer">
+                <div class="references">
+                  <div>References:</div>
+                  ${[...this.comment.references].map((refId) => {
+                    const referencedComment =
+                      this.comment.allIssueComments?.find(
+                        (c) => c.id === refId
+                      );
+                    const snippet = referencedComment
+                      ? referencedComment.body.slice(0, 50) +
+                        (referencedComment.body.length > 50 ? '...' : '')
+                      : 'unknown comment';
+                    return html`
+                      <div
+                        class="reference-item"
+                        @click=${(e) => this._handleReferenceClick(e, refId)}
+                      >
+                        ID: ${refId} - ${snippet}
+                      </div>
+                    `;
+                  })}
+                </div>
+              </div>
+            `
+          : ''}
       </div>
     `;
   }
